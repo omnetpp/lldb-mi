@@ -15,6 +15,7 @@
 #include "MICmnLLDBDebugger.h"
 #include "MICmnMIResultRecord.h"
 #include "MICmnMIValueConst.h"
+#include "Platform.h"
 
 //++
 // Details: CMICmdCmdEnvironmentCd constructor.
@@ -71,32 +72,8 @@ bool CMICmdCmdEnvironmentCd::ParseArgs() {
 bool CMICmdCmdEnvironmentCd::Execute() {
   CMICMDBASE_GETOPTION(pArgPathDir, File, m_constStrArgNamePathDir);
   const CMIUtilString &strWkDir(pArgPathDir->GetValue());
-  CMICmnLLDBDebugger &rDbg(CMICmnLLDBDebugger::Instance());
-  lldb::SBDebugger &rLldbDbg = rDbg.GetTheDebugger();
-  bool bOk = rLldbDbg.SetCurrentPlatformSDKRoot(strWkDir.c_str());
-  if (bOk) {
-    const CMIUtilString &rStrKeyWkDir(
-        m_rLLDBDebugSessionInfo.m_constStrSharedDataKeyWkDir);
-    if (!m_rLLDBDebugSessionInfo.SharedDataAdd<CMIUtilString>(rStrKeyWkDir,
-                                                              strWkDir)) {
-      SetError(CMIUtilString::Format(MIRSRC(IDS_DBGSESSION_ERR_SHARED_DATA_ADD),
-                                     m_cmdData.strMiCmd.c_str(),
-                                     rStrKeyWkDir.c_str()));
-      bOk = MIstatus::failure;
-    }
-  } else
-    SetError(CMIUtilString::Format(MIRSRC(IDS_CMD_ERR_FNFAILED),
-                                   m_cmdData.strMiCmd.c_str(),
-                                   "SetCurrentPlatformSDKRoot()"));
 
-  lldb::SBTarget sbTarget = m_rLLDBDebugSessionInfo.GetTarget();
-  if (sbTarget.IsValid()) {
-    lldb::SBLaunchInfo sbLaunchInfo = sbTarget.GetLaunchInfo();
-    sbLaunchInfo.SetWorkingDirectory(strWkDir.c_str());
-    sbTarget.SetLaunchInfo(sbLaunchInfo);
-  }
-
-  return bOk;
+  return !chdir(strWkDir.c_str()) ? MIstatus::success : MIstatus::failure;
 }
 
 //++
